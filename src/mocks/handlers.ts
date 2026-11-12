@@ -3,16 +3,14 @@ import type {
   Animal,
   Configuracao,
   Consulta,
+  SalvarAnimal,
+  SalvarTutor,
   Servico,
   Tutor,
   Usuario,
   Veterinario,
 } from '../api/types'
 
-/**
- * API simulada (MSW) para desenvolver e testar o front sem o backend/Supabase.
- * Ative com VITE_USE_MOCKS=true. Qualquer usuário abaixo entra com a senha SENHA_MOCK.
- */
 export const SENHA_MOCK = 'Demo1234'
 
 const ids = {
@@ -81,7 +79,14 @@ function problema(status: number, title: string, detail: string) {
   return HttpResponse.json({ status, title, detail }, { status })
 }
 
-/** Perfil do usuário a partir do token simulado "mock.<id>". */
+function naoEncontrado(recurso: string) {
+  return problema(404, 'Não encontrado', `${recurso} não encontrado(a).`)
+}
+
+function comContagem(tutor: Tutor): Tutor {
+  return { ...tutor, quantidadeAnimais: animais.filter((a) => a.tutorId === tutor.id).length }
+}
+
 function usuarioDoToken(request: Request): Usuario | null {
   const id = request.headers.get('Authorization')?.replace('Bearer mock.', '')
   return usuariosMock.find((u) => u.id === id) ?? null
@@ -110,6 +115,31 @@ export const handlers = [
     return HttpResponse.json(pagina(usuariosMock, new URL(request.url)))
   }),
 
+  http.post('*/api/usuarios', async ({ request }) => {
+    const dto = (await request.json()) as { nome: string; email: string; perfil: Usuario['perfil'] }
+    if (usuariosMock.some((u) => u.email === dto.email.toLowerCase())) {
+      return problema(409, 'Conflito', `Já existe um usuário com o e-mail '${dto.email}'.`)
+    }
+    const novo: Usuario = { id: crypto.randomUUID(), nome: dto.nome, email: dto.email.toLowerCase(), perfil: dto.perfil, ativo: true }
+    usuariosMock.push(novo)
+    return HttpResponse.json(novo, { status: 201 })
+  }),
+
+  http.put('*/api/usuarios/:id', async ({ params, request }) => {
+    const usuario = usuariosMock.find((u) => u.id === params.id)
+    if (!usuario) return naoEncontrado('Usuário')
+    const dto = (await request.json()) as { nome: string; email: string; perfil: Usuario['perfil'] }
+    Object.assign(usuario, { nome: dto.nome, email: dto.email.toLowerCase(), perfil: dto.perfil })
+    return HttpResponse.json(usuario)
+  }),
+
+  http.patch('*/api/usuarios/:id/ativo', async ({ params, request }) => {
+    const usuario = usuariosMock.find((u) => u.id === params.id)
+    if (!usuario) return naoEncontrado('Usuário')
+    usuario.ativo = ((await request.json()) as { ativo: boolean }).ativo
+    return HttpResponse.json(usuario)
+  }),
+
   http.get('*/api/veterinarios', () => HttpResponse.json(veterinarios)),
   http.get('*/api/servicos', () => HttpResponse.json(servicos)),
   http.get('*/api/configuracao', () => HttpResponse.json(configuracao)),
@@ -120,10 +150,130 @@ export const handlers = [
     const filtrados = busca
       ? tutores.filter((t) => t.nome.toLowerCase().includes(busca) || t.cpf.includes(busca.replace(/\D/g, '') || '§'))
       : tutores
+    return HttpResponse.json(pagina(filtrados.map(comContagem), url))
+  }),
+
+  http.get('*/api/tutores/:id', ({ params }) => {
+    const tutor = tutores.find((t) => t.id === params.id)
+    return tutor ? HttpResponse.json(comContagem(tutor)) : naoEncontrado('Tutor')
+  }),
+
+  http.get('*/api/tutores/:id/animais', ({ params, request }) =>
+    HttpResponse.json(
+      pagina(
+        animais.filter((a) => a.tutorId === params.id),
+        new URL(request.url),
+      ),
+    ),
+  ),
+
+  http.post('*/api/tutores', async ({ request }) => {
+    const dto = (await request.json()) as SalvarTutor
+    const cpf = dto.cpf.replace(/\D/g, '')
+    if (tutores.some((t) => t.cpf === cpf)) return problema(409, 'Conflito', 'Já existe um tutor cadastrado com este CPF.')
+
+    const novo: Tutor = {
+      ...dto,
+      id: crypto.randomUUID(),
+      cpf,
+      email: dto.email ?? null,
+      endereco: dto.endereco ?? null,
+      usuarioId: dto.usuarioId ?? null,
+      quantidadeAnimais: 0,
+    }
+    tutores.push(novo)
+    return HttpResponse.json(novo, { status: 201 })
+  }),
+
+  http.put('*/api/tutores/:id', async ({ params, request }) => {
+    const indice = tutores.findIndex((t) => t.id === params.id)
+    if (indice < 0) return naoEncontrado('Tutor')
+
+    const dto = (await request.json()) as SalvarTutor
+    const cpf = dto.cpf.replace(/\D/g, '')
+    if (tutores.some((t) => t.cpf === cpf && t.id !== params.id)) {
+      return problema(409, 'Conflito', 'Já existe um tutor cadastrado com este CPF.')
+    }
+
+    tutores[indice] = {
+      ...tutores[indice],
+      ...dto,
+      cpf,
+      email: dto.email ?? null,
+      endereco: dto.endereco ?? null,
+      usuarioId: dto.usuarioId ?? null,
+    }
+    animais.filter((a) => a.tutorId === params.id).forEach((a) => (a.tutorNome = dto.nome))
+    return HttpResponse.json(comContagem(tutores[indice]))
+  }),
+
+  http.delete('*/api/tutores/:id', ({ params }) => {
+    const indice = tutores.findIndex((t) => t.id === params.id)
+    if (indice < 0) return naoEncontrado('Tutor')
+    if (animais.some((a) => a.tutorId === params.id)) {
+      return problema(409, 'Conflito', 'Não é possível excluir um tutor que possui animais cadastrados.')
+    }
+    tutores.splice(indice, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get('*/api/animais', ({ request }) => {
+    const url = new URL(request.url)
+    const busca = url.searchParams.get('busca')?.toLowerCase()
+    const tutorId = url.searchParams.get('tutorId')
+    const filtrados = animais.filter(
+      (a) =>
+        (!tutorId || a.tutorId === tutorId) &&
+        (!busca || a.nome.toLowerCase().includes(busca) || a.tutorNome.toLowerCase().includes(busca)),
+    )
     return HttpResponse.json(pagina(filtrados, url))
   }),
 
-  http.get('*/api/animais', ({ request }) => HttpResponse.json(pagina(animais, new URL(request.url)))),
+  http.get('*/api/animais/:id', ({ params }) => {
+    const animal = animais.find((a) => a.id === params.id)
+    return animal ? HttpResponse.json(animal) : naoEncontrado('Animal')
+  }),
+
+  http.post('*/api/animais', async ({ request }) => {
+    const dto = (await request.json()) as SalvarAnimal
+    const tutor = tutores.find((t) => t.id === dto.tutorId)
+    if (!tutor) return problema(400, 'Regra de negócio violada', 'Tutor informado não existe.')
+
+    const novo: Animal = {
+      ...dto,
+      id: crypto.randomUUID(),
+      raca: dto.raca ?? null,
+      dataNascimento: dto.dataNascimento ?? null,
+      peso: dto.peso ?? null,
+      observacoes: dto.observacoes ?? null,
+      tutorNome: tutor.nome,
+    }
+    animais.push(novo)
+    return HttpResponse.json(novo, { status: 201 })
+  }),
+
+  http.put('*/api/animais/:id', async ({ params, request }) => {
+    const indice = animais.findIndex((a) => a.id === params.id)
+    if (indice < 0) return naoEncontrado('Animal')
+
+    const dto = (await request.json()) as SalvarAnimal
+    animais[indice] = {
+      ...animais[indice],
+      ...dto,
+      raca: dto.raca ?? null,
+      dataNascimento: dto.dataNascimento ?? null,
+      peso: dto.peso ?? null,
+      observacoes: dto.observacoes ?? null,
+    }
+    return HttpResponse.json(animais[indice])
+  }),
+
+  http.delete('*/api/animais/:id', ({ params }) => {
+    const indice = animais.findIndex((a) => a.id === params.id)
+    if (indice < 0) return naoEncontrado('Animal')
+    animais.splice(indice, 1)
+    return new HttpResponse(null, { status: 204 })
+  }),
 
   http.get('*/api/me/animais', ({ request }) => {
     const usuario = usuarioDoToken(request)
@@ -132,13 +282,58 @@ export const handlers = [
     return HttpResponse.json(pagina(animais.filter((a) => a.tutorId === tutor.id), new URL(request.url)))
   }),
 
+  http.get('*/api/consultas/horarios-disponiveis', ({ request }) => {
+    const url = new URL(request.url)
+    const vet = url.searchParams.get('veterinarioId')
+    const data = url.searchParams.get('data')!
+    const servico = servicos.find((s) => s.id === url.searchParams.get('servicoId'))
+    if (!servico) return naoEncontrado('Serviço')
+
+    const livres = []
+    for (let minutos = 8 * 60; minutos + servico.duracaoMinutos <= 18 * 60; minutos += servico.duracaoMinutos) {
+      const hh = String(Math.floor(minutos / 60)).padStart(2, '0')
+      const mm = String(minutos % 60).padStart(2, '0')
+      const inicio = `${data}T${hh}:${mm}:00`
+      const ocupado = consultas.some((c) => c.veterinarioId === vet && c.status === 'Agendada' && c.dataHora === inicio)
+      if (!ocupado) livres.push({ inicio, fim: inicio })
+    }
+    return HttpResponse.json(livres)
+  }),
+
+  http.get('*/api/me/consultas', ({ request }) => {
+    const usuario = usuarioDoToken(request)
+    const tutor = tutores.find((t) => t.usuarioId === usuario?.id)
+    if (!tutor) return problema(404, 'Não encontrado', 'Seu usuário ainda não está vinculado a um cadastro de tutor.')
+    return HttpResponse.json(pagina(consultas.filter((c) => c.tutorId === tutor.id), new URL(request.url)))
+  }),
+
+  http.patch('*/api/consultas/:id/cancelar', async ({ params, request }) => {
+    const consulta = consultas.find((c) => c.id === params.id)
+    if (!consulta) return naoEncontrado('Consulta')
+    if (consulta.status !== 'Agendada') {
+      return problema(400, 'Regra de negócio violada', `Só é possível cancelar consultas agendadas (status atual: ${consulta.status}).`)
+    }
+    consulta.status = 'Cancelada'
+    consulta.motivoCancelamento = ((await request.json()) as { motivo: string }).motivo
+    return HttpResponse.json(consulta)
+  }),
+
   http.get('*/api/consultas', ({ request }) => {
     const url = new URL(request.url)
     const data = url.searchParams.get('data')
-    const vet = url.searchParams.get('veterinarioId')
-    const lista = consultas.filter(
-      (c) => (!data || c.dataHora.startsWith(data)) && (!vet || c.veterinarioId === vet),
-    )
+    const status = url.searchParams.get('status')
+    let vet = url.searchParams.get('veterinarioId')
+    const usuario = usuarioDoToken(request)
+    if (usuario?.perfil === 'Veterinario') vet = veterinarios.find((v) => v.usuarioId === usuario.id)?.id ?? null
+
+    const lista = consultas
+      .filter(
+        (c) =>
+          (!data || c.dataHora.startsWith(data)) &&
+          (!vet || c.veterinarioId === vet) &&
+          (!status || c.status === status),
+      )
+      .sort((a, b) => a.dataHora.localeCompare(b.dataHora))
     return HttpResponse.json(pagina(lista, url))
   }),
 

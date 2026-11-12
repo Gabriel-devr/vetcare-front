@@ -1,4 +1,5 @@
 @import './tokens.css';
+@import './app.css';
 
 *,
 *::before,
@@ -60,7 +61,6 @@ textarea {
   outline-offset: 2px;
 }
 
-/* Texto só para leitores de tela */
 .sr-only {
   position: absolute;
   width: 1px;

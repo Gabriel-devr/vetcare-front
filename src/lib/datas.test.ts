@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dataBr, dataHoraBr, dataPorExtenso, hojeISO, hora, horaCurta, montarDataHora } from './datas'
+import { dataBr, dataHoraBr, dataPorExtenso, hojeISO, hora, horaCurta, idade, montarDataHora } from './datas'
 
 describe('datas (horário local da clínica, sem fuso)', () => {
   it('lê hora e data do texto sem converter fuso', () => {
@@ -16,6 +16,14 @@ describe('datas (horário local da clínica, sem fuso)', () => {
   it('formata hoje e o dia por extenso', () => {
     expect(hojeISO(new Date(2026, 9, 19))).toBe('2026-10-19')
     expect(dataPorExtenso('2026-10-19')).toBe('Segunda-feira, 19/10/2026')
+  })
+
+  it('calcula a idade em anos e meses', () => {
+    const hoje = new Date(2026, 10, 12)
+    expect(idade('2020-11-12', hoje)).toBe('6 anos')
+    expect(idade('2025-11-13', hoje)).toBe('11 meses')
+    expect(idade('2025-10-01', hoje)).toBe('1 ano')
+    expect(idade('2026-10-20', hoje)).toBe('0 meses')
   })
 
   it('encurta HH:mm:ss', () => {

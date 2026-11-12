@@ -1,8 +1,3 @@
-/**
- * Tipos que espelham os DTOs do backend (ASP.NET Core, JSON em camelCase, enums como texto).
- * Datas da agenda são o horário local da clínica, SEM fuso: "2030-01-08T10:00:00".
- * Nunca converta com toISOString(); veja src/lib/datas.ts.
- */
 
 export type Perfil = 'Admin' | 'Recepcionista' | 'Veterinario' | 'Tutor'
 
@@ -18,8 +13,6 @@ export interface ParametrosPagina {
   pagina?: number
   tamanhoPagina?: number
 }
-
-// ---------- Contas ----------
 
 export interface Usuario {
   id: string
@@ -47,8 +40,6 @@ export interface AtualizarUsuario {
   email: string
   perfil: Perfil
 }
-
-// ---------- Cadastros ----------
 
 export type Sexo = 'NaoInformado' | 'Macho' | 'Femea'
 
@@ -80,7 +71,6 @@ export interface Animal {
   especie: string
   raca: string | null
   sexo: Sexo
-  /** "yyyy-MM-dd" */
   dataNascimento: string | null
   peso: number | null
   observacoes: string | null
@@ -120,15 +110,11 @@ export interface Servico {
 export interface Configuracao {
   nomeClinica: string
   telefone: string | null
-  /** "HH:mm:ss" */
   horarioAbertura: string
-  /** "HH:mm:ss" */
   horarioFechamento: string
   diasAntecedenciaLembreteVacina: number
   emailEnvio: string | null
 }
-
-// ---------- Agenda ----------
 
 export type StatusConsulta = 'Agendada' | 'Cancelada' | 'Realizada'
 
@@ -152,12 +138,10 @@ export interface AgendarConsulta {
   animalId: string
   veterinarioId: string
   servicoId: string
-  /** Horário da clínica, sem fuso. */
   dataHora: string
 }
 
 export interface FiltroConsultas extends ParametrosPagina {
-  /** "yyyy-MM-dd". Se informado, ignora dataInicio/dataFim. */
   data?: string
   dataInicio?: string
   dataFim?: string
@@ -172,9 +156,6 @@ export interface HorarioDisponivel {
   fim: string
 }
 
-// ---------- Erros ----------
-
-/** Corpo de erro padrão da API (ProblemDetails / ValidationProblemDetails). */
 export interface ProblemDetails {
   status?: number
   title?: string

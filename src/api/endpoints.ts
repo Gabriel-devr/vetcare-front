@@ -19,10 +19,6 @@ import type {
   Veterinario,
 } from './types'
 
-/** Uma função por endpoint do backend. Os hooks (TanStack Query) de cada tela chamam estas funções. */
-
-// ---------- Contas (REQ 01 e 02) ----------
-
 export const auth = {
   login: (email: string, senha: string) =>
     api<LoginResposta>('/api/auth/login', { method: 'POST', body: { email, senha }, publica: true }),
@@ -39,8 +35,6 @@ export const usuarios = {
   definirAtivo: (id: string, ativo: boolean) =>
     api<Usuario>(`/api/usuarios/${id}/ativo`, { method: 'PATCH', body: { ativo } }),
 }
-
-// ---------- Cadastros (REQ 04 e 05) ----------
 
 export const tutores = {
   listar: (p: ParametrosPagina & { busca?: string } = {}) =>
@@ -64,15 +58,12 @@ export const animais = {
   excluir: (id: string) => api<void>(`/api/animais/${id}`, { method: 'DELETE' }),
 }
 
-/** Somente leitura nesta sprint (o cadastro completo é o REQ 06). */
 export const catalogo = {
   veterinarios: (somenteAtivos = true) =>
     api<Veterinario[]>('/api/veterinarios', { query: { somenteAtivos } }),
   servicos: (somenteAtivos = true) => api<Servico[]>('/api/servicos', { query: { somenteAtivos } }),
   configuracao: () => api<Configuracao>('/api/configuracao'),
 }
-
-// ---------- Agenda (REQ 07, 08 e 09) ----------
 
 export const consultas = {
   listar: (filtro: FiltroConsultas = {}) =>
@@ -86,8 +77,6 @@ export const consultas = {
   cancelar: (id: string, motivo: string) =>
     api<Consulta>(`/api/consultas/${id}/cancelar`, { method: 'PATCH', body: { motivo } }),
 }
-
-// ---------- Área do tutor logado ----------
 
 export const minhaArea = {
   animais: (p: ParametrosPagina = {}) => api<PaginaResultado<Animal>>('/api/me/animais', { query: { ...p } }),

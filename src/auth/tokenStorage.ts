@@ -1,19 +1,12 @@
+import type { LoginResposta } from '../api/types'
+
 const CHAVE = 'vetcare.sessao'
 
-/** Dados guardados entre recarregamentos da página. */
-export interface SessaoSalva {
-  token: string
-  expiraEm: string
-  usuario: { id: string; nome: string; email: string; perfil: string; ativo: boolean }
-}
-
-// localStorage pode lançar exceção (modo privado, dados bloqueados): nunca deixar isso derrubar o app.
-
-export function lerSessao(): SessaoSalva | null {
+export function lerSessao(): LoginResposta | null {
   try {
     const bruto = localStorage.getItem(CHAVE)
     if (!bruto) return null
-    const sessao = JSON.parse(bruto) as SessaoSalva
+    const sessao = JSON.parse(bruto) as LoginResposta
     if (!sessao.token || new Date(sessao.expiraEm).getTime() <= Date.now()) {
       limparSessao()
       return null
@@ -24,11 +17,11 @@ export function lerSessao(): SessaoSalva | null {
   }
 }
 
-export function salvarSessao(sessao: SessaoSalva): void {
+export function salvarSessao(sessao: LoginResposta): void {
   try {
     localStorage.setItem(CHAVE, JSON.stringify(sessao))
   } catch {
-    /* sem armazenamento: a sessão vale só até recarregar */
+    return
   }
 }
 
@@ -36,7 +29,7 @@ export function limparSessao(): void {
   try {
     localStorage.removeItem(CHAVE)
   } catch {
-    /* ignora */
+    return
   }
 }
 

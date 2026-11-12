@@ -1,14 +1,11 @@
 import { lerToken } from '../auth/tokenStorage'
 import type { ProblemDetails } from './types'
 
-/** Base da API. Vazio = mesma origem (em desenvolvimento o Vite repassa /api para o backend). */
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? ''
 
-/** Erro lançado quando a API responde com status fora de 2xx. */
 export class ApiError extends Error {
   readonly status: number
   readonly titulo: string
-  /** Erros por campo (ex.: { Cpf: ["CPF inválido."] }), quando a API devolve validação. */
   readonly erros: Record<string, string[]>
 
   constructor(status: number, titulo: string, detalhe: string, erros: Record<string, string[]> = {}) {
@@ -37,13 +34,11 @@ interface Opcoes {
   body?: unknown
   query?: Parametros
   signal?: AbortSignal
-  /** Rotas públicas (login) não enviam token nem disparam o logout em 401. */
   publica?: boolean
 }
 
 let aoNaoAutenticado: (() => void) | null = null
 
-/** O contexto de autenticação registra aqui o que fazer quando o token expira ou é recusado. */
 export function definirAoNaoAutenticado(callback: (() => void) | null) {
   aoNaoAutenticado = callback
 }
@@ -64,7 +59,7 @@ async function lerErro(resposta: Response): Promise<ApiError> {
   try {
     corpo = (await resposta.json()) as ProblemDetails
   } catch {
-    /* corpo vazio ou não-JSON */
+    corpo = {}
   }
 
   const padrao: Record<number, string> = {

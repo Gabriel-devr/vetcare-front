@@ -1,4 +1,3 @@
-/** "11144477735" → "111.444.777-35" (mostra aos poucos enquanto digita). */
 export function mascararCpf(valor: string): string {
   const d = valor.replace(/\D/g, '').slice(0, 11)
   return d
@@ -7,7 +6,6 @@ export function mascararCpf(valor: string): string {
     .replace(/\.(\d{3})(\d)/, '.$1-$2')
 }
 
-/** "71988887777" → "(71) 98888-7777" */
 export function mascararTelefone(valor: string): string {
   const d = valor.replace(/\D/g, '').slice(0, 11)
   if (d.length <= 2) return d
@@ -20,7 +18,6 @@ export function moeda(valor: number): string {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
-/** "4,2" ou "4.2" → 4.2 (null se vazio ou inválido). */
 export function lerDecimal(texto: string): number | null {
   const limpo = texto.trim().replace(',', '.')
   if (limpo === '') return null
