@@ -1,0 +1,46 @@
+/*
+ * Tokens de design do VetCare, extraídos dos protótipos (pasta VetCare-telas).
+ * Valores aproximados dos PNGs; ajustar aqui e todas as telas acompanham.
+ */
+:root {
+  /* Marca */
+  --cor-primaria: #0f7470;
+  --cor-primaria-escura: #0b5c58;
+  --cor-primaria-suave: #e3f2ef;
+  --cor-menu: #0f3a38;
+  --cor-menu-texto: #d9ece9;
+
+  /* Superfícies e texto */
+  --cor-fundo: #f5f7f6;
+  --cor-superficie: #ffffff;
+  --cor-borda: #dfe5e3;
+  --cor-texto: #16201f;
+  --cor-texto-suave: #55625f;
+
+  /* Estados */
+  --cor-erro: #b3261e;
+  --cor-erro-fundo: #fde8e6;
+  --cor-aviso: #8a5a00;
+  --cor-aviso-fundo: #fff4d6;
+  --cor-info: #1d4f91;
+  --cor-info-fundo: #e5eefb;
+  --cor-sucesso: #0f6b3a;
+  --cor-sucesso-fundo: #e1f3e8;
+  --cor-neutro: #4a5553;
+  --cor-neutro-fundo: #eceeed;
+
+  /* Forma e espaçamento */
+  --raio: 8px;
+  --raio-grande: 14px;
+  --espaco-1: 4px;
+  --espaco-2: 8px;
+  --espaco-3: 12px;
+  --espaco-4: 16px;
+  --espaco-5: 24px;
+  --espaco-6: 32px;
+  --largura-menu: 220px;
+  --sombra-cartao: 0 1px 2px rgba(15, 58, 56, 0.06);
+
+  /* Tipografia */
+  --fonte: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+}
